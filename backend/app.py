@@ -8,7 +8,7 @@ import re
 # ---------------------------
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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"   # 🔴 PUT YOUR KEY HERE
+    api_key=os.getenv("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")  # 🔴 PUT YOUR KEY HERE
 )
 
 st.set_page_config(page_title="MedAssist AI", page_icon="🏥", layout="wide")
