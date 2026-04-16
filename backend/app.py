@@ -21,7 +21,6 @@ def get_client():
     )
 
 client = get_client()
-
 # ---------------------------
 # PAGE SETUP
 # ---------------------------
