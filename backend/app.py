@@ -48,8 +48,7 @@ def clean_json(text):
         text = re.sub(r"```json|```", "", text)
         start = text.find("{")
         end = text.rfind("}") + 1
-        json_text = text[start:end]
-        return json.loads(json_text)
+        return json.loads(text[start:end])
     except:
         return None
 
@@ -62,16 +61,22 @@ def check_emergency(text):
 # ---------------------------
 # OPENROUTER FUNCTION
 # ---------------------------
-def ask_ai(prompt):
+def ask_ai(prompt, json_mode=False):
     try:
-        response = client.chat.completions.create(
-            model="mistralai/mixtral-8x7b-instruct",
-            messages=[
+        params = {
+            "model": "mistralai/mixtral-8x7b-instruct",
+            "messages": [
                 {"role": "system", "content": "You are a helpful medical assistant."},
                 {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"}  # 🔥 forces valid JSON
-        )
+            ]
+        }
+
+        # ✅ JSON mode only when needed
+        if json_mode:
+            params["response_format"] = {"type": "json_object"}
+
+        response = client.chat.completions.create(**params)
+
         return response.choices[0].message.content
 
     except Exception as e:
@@ -106,26 +111,21 @@ with tab1:
             prompt = f"""
 You are a medical expert system.
 
-Return ONLY valid JSON. No explanation.
+Return ONLY valid JSON.
 
-STRICT FORMAT:
+FORMAT:
 {{
   "possible_conditions": ["condition1", "condition2"],
-  "urgency": "Low",
+  "urgency": "Low/Medium/High",
   "recommended_action": "text",
   "precautions": ["point1", "point2"]
 }}
-
-Rules:
-- Do NOT mix keys inside lists
-- Do NOT add text outside JSON
-- Ensure valid JSON syntax
 
 Symptoms: {user_input}
 """
 
             with st.spinner("Analyzing symptoms..."):
-                response_text = ask_ai(prompt)
+                response_text = ask_ai(prompt, json_mode=True)
 
             data = clean_json(response_text)
 
@@ -172,7 +172,7 @@ with tab2:
             prompt = f"""
 You are a hospital help desk assistant.
 
-Answer clearly:
+Answer clearly and naturally:
 - Department guidance
 - Appointments
 - Visiting hours
@@ -182,7 +182,7 @@ Query: {help_query}
 """
 
             with st.spinner("Fetching help..."):
-                response_text = ask_ai(prompt)
+                response_text = ask_ai(prompt)  # ❌ NO JSON MODE
 
             st.write(response_text)
 
@@ -212,7 +212,7 @@ User: {user_msg}
 """
 
         with st.spinner("Thinking..."):
-            reply = ask_ai(prompt)
+            reply = ask_ai(prompt)  # ❌ NO JSON MODE
 
         st.session_state.chat.append({"role": "assistant", "content": reply})
         st.chat_message("assistant").markdown(reply)
