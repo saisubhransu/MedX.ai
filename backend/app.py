@@ -205,7 +205,6 @@ with tab3:
         prompt = f"""
 You are a medical assistant chatbot.
 Keep answers safe, short, and helpful.
-
 User: {user_msg}
 """
 
