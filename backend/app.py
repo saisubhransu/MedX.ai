@@ -48,7 +48,8 @@ def clean_json(text):
         text = re.sub(r"```json|```", "", text)
         start = text.find("{")
         end = text.rfind("}") + 1
-        return json.loads(text[start:end])
+        json_text = text[start:end]
+        return json.loads(json_text)
     except:
         return None
 
@@ -68,7 +69,8 @@ def ask_ai(prompt):
             messages=[
                 {"role": "system", "content": "You are a helpful medical assistant."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            response_format={"type": "json_object"}  # 🔥 forces valid JSON
         )
         return response.choices[0].message.content
 
@@ -102,19 +104,25 @@ with tab1:
 
         else:
             prompt = f"""
-            You are a medical expert system.
+You are a medical expert system.
 
-            Respond ONLY in valid JSON.
+Return ONLY valid JSON. No explanation.
 
-            {{
-              "possible_conditions": ["condition1", "condition2"],
-              "urgency": "Low/Medium/High",
-              "recommended_action": "text",
-              "precautions": ["point1", "point2"]
-            }}
+STRICT FORMAT:
+{{
+  "possible_conditions": ["condition1", "condition2"],
+  "urgency": "Low",
+  "recommended_action": "text",
+  "precautions": ["point1", "point2"]
+}}
 
-            Symptoms: {user_input}
-            """
+Rules:
+- Do NOT mix keys inside lists
+- Do NOT add text outside JSON
+- Ensure valid JSON syntax
+
+Symptoms: {user_input}
+"""
 
             with st.spinner("Analyzing symptoms..."):
                 response_text = ask_ai(prompt)
@@ -128,10 +136,10 @@ with tab1:
                 st.success("Analysis Complete")
 
                 st.write("### 🧾 Possible Conditions")
-                for cond in data["possible_conditions"]:
+                for cond in data.get("possible_conditions", []):
                     st.write(f"- {cond}")
 
-                urgency = data["urgency"]
+                urgency = data.get("urgency", "Low")
 
                 if urgency == "High":
                     st.error(f"⚠️ Urgency: {urgency}")
@@ -141,10 +149,10 @@ with tab1:
                     st.success(f"✅ Urgency: {urgency}")
 
                 st.write("### 🏥 Recommended Action")
-                st.write(data["recommended_action"])
+                st.write(data.get("recommended_action", "N/A"))
 
                 st.write("### 🛡 Precautions")
-                for p in data["precautions"]:
+                for p in data.get("precautions", []):
                     st.write(f"- {p}")
 
 # ===========================
@@ -162,16 +170,16 @@ with tab2:
 
         else:
             prompt = f"""
-            You are a hospital help desk assistant.
+You are a hospital help desk assistant.
 
-            Answer clearly:
-            - Department guidance
-            - Appointments
-            - Visiting hours
-            - Emergency info
+Answer clearly:
+- Department guidance
+- Appointments
+- Visiting hours
+- Emergency info
 
-            Query: {help_query}
-            """
+Query: {help_query}
+"""
 
             with st.spinner("Fetching help..."):
                 response_text = ask_ai(prompt)
@@ -197,11 +205,11 @@ with tab3:
         st.chat_message("user").markdown(user_msg)
 
         prompt = f"""
-        You are a medical assistant chatbot.
-        Keep answers safe, short, and helpful.
+You are a medical assistant chatbot.
+Keep answers safe, short, and helpful.
 
-        User: {user_msg}
-        """
+User: {user_msg}
+"""
 
         with st.spinner("Thinking..."):
             reply = ask_ai(prompt)
