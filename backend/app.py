@@ -7,11 +7,24 @@ import os
 # ---------------------------
 # CONFIG (OPENROUTER)
 # ---------------------------
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY")  # 🔴 PUT YOUR KEY HERE
-)
+@st.cache_resource
+def get_client():
+    api_key = os.getenv("OPENROUTER_API_KEY")
 
+    if not api_key:
+        st.error("🚨 OPENROUTER_API_KEY not found. Set it in Streamlit Secrets.")
+        st.stop()
+
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key
+    )
+
+client = get_client()
+
+# ---------------------------
+# PAGE SETUP
+# ---------------------------
 st.set_page_config(page_title="MedAssist AI", page_icon="🏥", layout="wide")
 st.title("🏥 MedAssist AI - Hospital Expert System")
 
@@ -33,7 +46,9 @@ EMERGENCY_SIGNS = [
 def clean_json(text):
     try:
         text = re.sub(r"```json|```", "", text)
-        return json.loads(text.strip())
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        return json.loads(text[start:end])
     except:
         return None
 
@@ -59,7 +74,6 @@ def ask_ai(prompt):
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
-
 
 # ---------------------------
 # TABS
@@ -194,8 +208,3 @@ with tab3:
 
         st.session_state.chat.append({"role": "assistant", "content": reply})
         st.chat_message("assistant").markdown(reply)
-import os
-
-port = int(os.environ.get("PORT", 8501))
-
-# Run Streamlit via command (handled in render)
